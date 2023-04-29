@@ -1,8 +1,5 @@
-from SD import StableDiffusionControlNetModel
-import warnings
-warnings.filterwarnings("ignore")
-
-sdc = StableDiffusionControlNetModel()
-sdc.text2img_seg("test.png", "test_control_seg.png", "a living room", save_seg=True, seg_path="test_seg.png")
-
-
+import sys
+import os
+from pathlib import Path
+print(os.path.dirname(__file__))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lama"))

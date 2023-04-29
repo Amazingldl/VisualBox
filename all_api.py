@@ -2,7 +2,7 @@ import numpy as np
 from DIS import dis_inference
 from DIS import dis_inference_dir
 from SAM import sam_inference
-from SD import hf_remove
+from SD import sd_remove
 from LAMA import lama_remove
 from SD import StableDiffusionModel
 from SD import StableDiffusionControlNetModel
@@ -128,7 +128,7 @@ def remove_sd(
     elif not os.path.exists(prefix + "_expand.png"):
         return {"result": "failed, please generate mask image first"}
     else:
-        hf_remove(in_path, out_path)
+        sd_remove(in_path, out_path)
         return {"result": "success"}
 
 
