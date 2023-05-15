@@ -26,13 +26,13 @@ def sd_4x(img_path, save_path):
 
 
 class StableDiffusionModel(object):
-    def __init__(self, repo_id="IndoorS"):
+    def __init__(self, repo_id="Indoor"):
         # self.repo_path = Path("./model/SD") / repo_id
         self.repo_path = "./model/SD/" + repo_id
         self.text2img_pipe = StableDiffusionPipeline.from_pretrained(
             self.repo_path,
             torch_dtype=torch.float16,
-            custom_pipeline="lpw_stable_diffusion",
+            # custom_pipeline="lpw_stable_diffusion",
         ).to(device)
         components = self.text2img_pipe.components
         self.text2img_pipe.enable_xformers_memory_efficient_attention()
@@ -63,7 +63,7 @@ class StableDiffusionModel(object):
 
 
 class StableDiffusionControlNetModel(object):
-    def __init__(self, repo_id="IndoorS"):
+    def __init__(self, repo_id="Indoor"):
         self.repo_path = "./model/SD/" + repo_id
 
     def text2img_seg(self, control_path, save_path, prompt, n_prompt=None, height=None, width=None, save_seg=False, seg_path=None):

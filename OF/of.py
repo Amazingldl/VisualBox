@@ -36,7 +36,7 @@ configs = {
 
 def load_model(model_name):
     config = configs[model_name]["config"]
-    modelpath = os.path.join(current_path, "models", configs[model_name]["name"])
+    modelpath = os.path.join("model", "OF", configs[model_name]["name"])
     model, metadata = make_detectron2_model(config, modelpath)
     return model, metadata
 

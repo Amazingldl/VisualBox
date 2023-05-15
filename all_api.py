@@ -93,7 +93,7 @@ def sam(in_path: str,
         return {"result": "failed, wrong path"}
 
 
-@app.post("api/tools/of")
+@app.post("/api/tools/of")
 def seg_oneformer(in_path, out_path, out_map_path):
     """
     oneformer分割接口
