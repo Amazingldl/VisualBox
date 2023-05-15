@@ -175,9 +175,10 @@ cython_debug/
 
 
 ## special file
-model/
-models/
-OneFormer_Gradio/
+/model
+/models
+/OF/models/
+/OneFormer_Gradio/
 image/
 *.jpg
 *.png
