@@ -182,3 +182,4 @@ cython_debug/
 image/
 *.jpg
 *.png
+nohup.out
