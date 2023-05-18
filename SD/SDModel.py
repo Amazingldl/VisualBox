@@ -49,7 +49,10 @@ class StableDiffusionModel(object):
             height=height,
             num_inference_steps=40,
         ).images[0]
-        image.save(save_path)
+        if save_path is None:
+            return image
+        else:
+            image.save(save_path)
 
     def img2img(self, in_path, save_path, prompt, n_prompt=None):
         in_img = Image.open(in_path)
@@ -59,7 +62,10 @@ class StableDiffusionModel(object):
             negative_prompt=n_prompt,
             num_inference_steps=40,
         ).images[0]
-        image.save(save_path)
+        if save_path is None:
+            return image
+        else:
+            image.save(save_path)
 
 
 class StableDiffusionControlNetModel(object):

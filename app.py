@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import cv2
 from PIL import Image
 from segment_anything import sam_model_registry, SamPredictor
-from diffusers import StableDiffusionInpaintPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import StableDiffusionInpaintPipeline, UniPCMultistepScheduler
 from LAMA import inpaint_img_with_lama
 
 sam_checkpoint = "./model/SAM/sam_vit_h_4b8939.pth"
@@ -120,33 +120,24 @@ def gene_expand(mask_img):
 
 def gene_sd_removed(image, mask_image):
     prompt = "background"
-    # controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16)
     pipe = StableDiffusionInpaintPipeline.from_pretrained(
-        "./model/HF/stable-diffusion-inpainting",
+        "./model/SD/stable-diffusion-inpainting",
         # "./model/HF/stable-diffusion-2-inpainting",
-        # controlnet=controlnet,
         torch_dtype=torch.float16,
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_xformers_memory_efficient_attention()
     pipe.to("cuda")
 
-    # prepare canny image
-    # canny_image = cv2.Canny(image, 100, 200)
-    # canny_image = canny_image[:, :, None]
-    # canny_image = np.concatenate([canny_image, canny_image, canny_image], axis=2)
-
     h, w = image.shape[:2]  # image.shape = (H, W, 3)   mode=RGB
     image = Image.fromarray(image).resize((512, 512))
     mask_image = Image.fromarray(mask_image).resize((512, 512))
-    # canny_image = Image.fromarray(canny_image).resize((512, 512))
 
     removed_img = pipe(
         prompt,
         image=image,
         mask_image=mask_image,
         guidance_scale=7.5,
-        # control_image=canny_image,
     ).images[0]
     return removed_img.resize((w, h))
 
@@ -157,12 +148,12 @@ def gene_lama_removed(image, mask_image):
 
 
 
-with gr.Blocks(theme='Ajaxon6255/Emerald_Isle', title="Seg & remove") as demo:
+with gr.Blocks(theme='Ajaxon6255/Emerald_Isle', title="Visual Box") as demo:
     state_points = gr.State([])
     state_labels = gr.State([])
     state_masks = gr.State([])
     gr.Markdown(""
-                "## Segment and Remove"
+                "## Visual Box"
                 "")
     with gr.Row():
         label_type = gr.Radio(label="label type", choices=["1", "0"], value="1")
@@ -174,7 +165,7 @@ with gr.Blocks(theme='Ajaxon6255/Emerald_Isle', title="Seg & remove") as demo:
         expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False)
     with gr.Row():
         sd_removed_img = gr.Image(label="sd removed image", interactive=False)
-        lama_removed_img = gr.Image(label="sd removed image", interactive=False)
+        lama_removed_img = gr.Image(label="lama removed image", interactive=False)
     with gr.Row():
         clear_btn = gr.Button("Clear all")
         mask_btn = gr.Button("Generate mask image")
@@ -186,7 +177,7 @@ with gr.Blocks(theme='Ajaxon6255/Emerald_Isle', title="Seg & remove") as demo:
                      outputs=[state_points, state_labels, state_masks])
     input_img.select(gene_seg, inputs=[input_img, label_type, state_points, state_labels],
                      outputs=[seg_img, state_points, state_labels, state_masks])
-    clear_btn.click(lambda: [None] * 5, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
+    clear_btn.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
 
     mask_btn.click(gene_mask, inputs=[state_masks], outputs=[mask_img])
     expand_btn.click(gene_expand, inputs=[mask_img], outputs=[expand_img])

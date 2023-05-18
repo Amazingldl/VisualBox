@@ -18,10 +18,9 @@ def remove(in_path, out_path):
     pipe.enable_xformers_memory_efficient_attention()
     pipe.to("cuda")
 
-    old_size = image.size
-    image = image.resize((512, 512))
-    mask_image = mask_image.resize((512, 512))
-    removed_img = pipe(prompt=prompt, image=image, mask_image=mask_image).images[0]
-    removed_img = removed_img.resize(old_size)
+    w, h = image.size
+    h = h // 8 * 8
+    w = w // 8 * 8
+    removed_img = pipe(prompt=prompt, image=image, mask_image=mask_image, height=h, width=w).images[0]
     removed_img.save(out_path)
 
