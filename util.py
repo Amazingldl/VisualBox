@@ -162,7 +162,8 @@ def gene_lama_removed(image, mask_image):
     return img_inpainted
 
 
-def text2img(prompt, n_prompt, width, height):
+def text2img(prompt, n_prompt, width, height, seed, img_nums):
     sd = StableDiffusionModel()
-    img = sd.text2img(None, prompt, n_prompt, width, height)
-    return img
+    print(prompt, n_prompt, seed, img_nums, width, height)
+    img = sd.text2img(None, prompt, n_prompt, width, height, seed, img_nums)
+    return [img]

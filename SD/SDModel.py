@@ -41,13 +41,15 @@ class StableDiffusionModel(object):
         self.img2img_pipe.enable_xformers_memory_efficient_attention()
         self.img2img_pipe.enable_attention_slicing()
 
-    def text2img(self, save_path, prompt, n_prompt=None, width=1024, height=576):
+    def text2img(self, save_path, prompt, n_prompt=None, width=1024, height=576, seed=0, img_nums=1):
+        generator = torch.Generator(device=device).manual_seed(int(seed))
         image = self.text2img_pipe(
             prompt=prompt,
             negative_prompt=n_prompt,
             width=width,
             height=height,
             num_inference_steps=40,
+            generator=generator,
         ).images[0]
         if save_path is None:
             return image

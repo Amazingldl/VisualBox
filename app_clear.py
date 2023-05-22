@@ -75,10 +75,15 @@ with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
                 t2i_nprompt = gr.Textbox(label="negative prompt", lines=3, interactive=True)
                 t2i_width = gr.Slider(label="width", minimum=512, maximum=1536, value=1024, step=4, interactive=True)
                 t2i_height = gr.Slider(label="height", minimum=512, maximum=1536, value=576, step=4, interactive=True)
+                t2i_seed = gr.Number(label="seed", value=0, interactive=True)
+                t2i_img_nums = gr.Number(label="img_nums", value=1, interactive=True)
                 with gr.Row():
                     clear_btn2 = gr.Button("Clear Text")
                     t2i_gene_btn = gr.Button("Generate", variant="primary")
-            t2i_img = gr.Image(interactive=False)
+            # t2i_img = gr.Image(interactive=False)
+            t2i_gallery = gr.Gallery(
+                label="Generated image", show_label=False, elem_id="gallery"
+                ).style(columns=[2], rows=[2], object_fit="contain", height="auto")
     with gr.Tab("Image to Image"):
         pass
 
@@ -94,8 +99,8 @@ with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
     
     # table 2
     clear_btn2.click(lambda: [None] * 2, None, [t2i_prompt, t2i_nprompt])
-    t2i_gene_btn.click(text2img, inputs=[t2i_prompt, t2i_nprompt, t2i_width, t2i_height], 
-                       outputs=[t2i_img])
+    t2i_gene_btn.click(text2img, inputs=[t2i_prompt, t2i_nprompt, t2i_width, t2i_height, t2i_seed, t2i_img_nums], 
+                       outputs=[t2i_gallery])
 
 
 
