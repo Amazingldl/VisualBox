@@ -41,33 +41,46 @@ class StableDiffusionModel(object):
         self.img2img_pipe.enable_xformers_memory_efficient_attention()
         self.img2img_pipe.enable_attention_slicing()
 
-    def text2img(self, save_path, prompt, n_prompt=None, width=1024, height=576, seed=0, img_nums=1):
-        generator = torch.Generator(device=device).manual_seed(int(seed))
-        image = self.text2img_pipe(
+    def text2img(self, save_path, prompt, n_prompt=None, width=1024, height=576, seed=-1, img_nums=1):
+        if seed == -1:
+            generator = None
+        else:
+            generator = torch.Generator(device=device).manual_seed(int(seed))
+        images = self.text2img_pipe(
             prompt=prompt,
             negative_prompt=n_prompt,
             width=width,
             height=height,
             num_inference_steps=40,
             generator=generator,
-        ).images[0]
+            num_images_per_prompt=img_nums,
+        ).images
         if save_path is None:
-            return image
+            return images
         else:
-            image.save(save_path)
+            images[0].save(save_path)
 
-    def img2img(self, in_path, save_path, prompt, n_prompt=None):
-        in_img = Image.open(in_path)
-        image = self.img2img_pipe(
+    def img2img(self, in_path, save_path, prompt, n_prompt=None, seed=-1, img_nums=1):
+        if isinstance(in_path, str):
+            in_img = Image.open(in_path)
+        elif isinstance(in_path, np.ndarray):
+            in_img = Image.fromarray(in_path)
+        if seed == -1:
+            generator = None
+        else:
+            generator = torch.Generator(device=device).manual_seed(int(seed))
+        images = self.img2img_pipe(
             image=in_img,
             prompt=prompt,
             negative_prompt=n_prompt,
             num_inference_steps=40,
-        ).images[0]
+            generator=generator,
+            num_images_per_prompt=img_nums,
+        ).images
         if save_path is None:
-            return image
+            return images
         else:
-            image.save(save_path)
+            images[0].save(save_path)
 
 
 class StableDiffusionControlNetModel(object):

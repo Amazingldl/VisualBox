@@ -30,9 +30,28 @@ def real_esrgan(img_path, save_path, scale):
         model.load_weights('./model/RealESRGAN/RealESRGAN_x2plus.pth', download=False)
     else:
         model.load_weights('./model/RealESRGAN/RealESRGAN_x4plus.pth', download=False)
-    image = Image.open(img_path).convert('RGB')
+    
+    if isinstance(img_path, str):
+        image = Image.open(img_path).convert('RGB')
+    elif isinstance(img_path, np.ndarray):
+        image = Image.fromarray(img_path).convert('RGB')
     sr_image = model.predict(image)
-    sr_image.save(save_path)
+    if save_path is not None:
+        sr_image.save(save_path)
+    else:
+        return sr_image
+
+
+def real_esrgan_app(img, scale):
+    model = RealESRGAN(device, scale=scale)
+    if scale == 2:
+        model.load_weights('./model/RealESRGAN/RealESRGAN_x2plus.pth', download=False)
+    else:
+        model.load_weights('./model/RealESRGAN/RealESRGAN_x4plus.pth', download=False)
+
+    image = Image.fromarray(img).convert('RGB')
+    sr_image = model.predict(image)
+    return sr_image
 
 
 def is_imagefile(path):
@@ -116,8 +135,8 @@ def gene_expand(mask_img):
     return dilate_mask
 
 
-def gene_sd_removed(image, mask_image):
-    prompt = "background"
+def gene_sd_inpaint(prompt, image, mask_image):
+    # prompt = "background"
     # controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16)
     pipe = StableDiffusionInpaintPipeline.from_pretrained(
         "./model/SD/stable-diffusion-inpainting",
@@ -161,9 +180,30 @@ def gene_lama_removed(image, mask_image):
     img_inpainted = inpaint_img_with_lama(image, mask_image, "./LAMA/lama/configs/prediction/default.yaml", "./model/big-lama")
     return img_inpainted
 
-
-def text2img(prompt, n_prompt, width, height, seed, img_nums):
+def text2img(style, prompt, n_prompt, width, height, seed, img_nums):
+    styles = {"传统中式": "Chinese, Traditional Chinese interior design",
+              "新中式": "New Chinese interior design",
+              "日式侘寂风": "chaji, wabi-sabi interior design",
+              "北欧清新风": "North European interior design",
+              "现代极简风": "Modern interior design",
+              }
+    if style:
+        prompt = styles[style] + ", " + prompt
     sd = StableDiffusionModel()
-    print(prompt, n_prompt, seed, img_nums, width, height)
-    img = sd.text2img(None, prompt, n_prompt, width, height, seed, img_nums)
-    return [img]
+    print(prompt, n_prompt, seed, width, height, img_nums)
+    img = sd.text2img(None, prompt, n_prompt, width, height, seed, int(img_nums))
+    return img
+
+def img2img(style, img, prompt, n_prompt, seed, img_nums):
+    styles = {"传统中式": "Chinese, Traditional Chinese interior design",
+              "新中式": "New Chinese interior design",
+              "日式侘寂风": "chaji, wabi-sabi interior design",
+              "北欧清新风": "North European interior design",
+              "现代极简风": "Modern interior design",
+              }
+    if style:
+        prompt = styles[style] + ", " + prompt
+    sd = StableDiffusionModel()
+    print(prompt, n_prompt, seed, img_nums)
+    img = sd.img2img(img, None, prompt, n_prompt, seed, int(img_nums))
+    return img

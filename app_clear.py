@@ -51,60 +51,104 @@ with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
                 "## Visual Box"
                 "")
 
-    with gr.Tab("Seg & Remove"):
+    with gr.Tab("分割 & 编辑 & 移除"):
         with gr.Row():
-            label_type = gr.Radio(label="label type", choices=["1", "0"], value="1", interactive=True)
+            label_type = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
+        gr.Markdown("分割")
         with gr.Row():
-            input_img = gr.Image(label="input image", type="numpy")
-            seg_img = gr.Image(label="seg image", interactive=False)
-            mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=True)
-            expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False, visible=True)
-        with gr.Row():
-            sd_removed_img = gr.Image(label="sd removed image", interactive=False)
-            lama_removed_img = gr.Image(label="lama removed image", interactive=False)
-        with gr.Row():
-            clear_btn1 = gr.Button("Clear all")
-            # mask_btn = gr.Button("Generate mask image")
-            # expand_btn = gr.Button("Expand mask")
-            sd_removed_btn = gr.Button("Generate sd removed image", variant="primary")
-            lama_removed_btn = gr.Button("Generate lama removed image", variant="primary")
-    with gr.Tab("Text to Image"):
+            input_img = gr.Image(label="原始图像", type="numpy")
+            seg_img = gr.Image(label="分割图像", interactive=False)
+        mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
+        expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False, visible=False)
+        gr.Markdown("编辑")
         with gr.Row():
             with gr.Column():
-                t2i_prompt = gr.Textbox(label="prompt", lines=3, interactive=True)
-                t2i_nprompt = gr.Textbox(label="negative prompt", lines=3, interactive=True)
-                t2i_width = gr.Slider(label="width", minimum=512, maximum=1536, value=1024, step=4, interactive=True)
-                t2i_height = gr.Slider(label="height", minimum=512, maximum=1536, value=576, step=4, interactive=True)
-                t2i_seed = gr.Number(label="seed", value=0, interactive=True)
-                t2i_img_nums = gr.Number(label="img_nums", value=1, interactive=True)
+                sd_inpaint_text = gr.Textbox(label="提示词", lines=3, interactive=True)
                 with gr.Row():
-                    clear_btn2 = gr.Button("Clear Text")
-                    t2i_gene_btn = gr.Button("Generate", variant="primary")
+                    sd_clear_btn = gr.Button("清除文本")
+                    sd_inpaint_btn = gr.Button("通过SD模型生成图像", variant="primary")
+            with gr.Column():
+                sd_inpaint_img = gr.Image(label="SD生成图像", interactive=False)
+        gr.Markdown("移除")
+        with gr.Row():
+            with gr.Column():
+                lama_removed_btn = gr.Button("通过lama模型移除对象", variant="primary")
+            lama_removed_img = gr.Image(label="lama生成图像", interactive=False)
+        # with gr.Row():
+        #     clear_btn1 = gr.Button("清除所有图像")
+            # mask_btn = gr.Button("Generate mask image")
+            # expand_btn = gr.Button("Expand mask")
+            # sd_removed_btn = gr.Button("通过SD模型生成图像", variant="primary")
+            # lama_removed_btn = gr.Button("通过lama模型移除对象", variant="primary")
+
+    with gr.Tab("文本生成图像"):
+        with gr.Row():
+            with gr.Column():
+                t2i_style = gr.Radio(choices=["传统中式", "新中式", "日式侘寂风", "北欧清新风", "现代极简风"], label="装修风格")
+                t2i_prompt = gr.Textbox(label="正向提示词", lines=3, interactive=True)
+                t2i_nprompt = gr.Textbox(label="反向提示词", lines=3, interactive=True)
+                t2i_width = gr.Slider(label="图像宽度", minimum=512, maximum=1536, value=1024, step=4, interactive=True)
+                t2i_height = gr.Slider(label="图像高度", minimum=512, maximum=1536, value=576, step=4, interactive=True)
+                t2i_seed = gr.Number(label="随机种子(-1表示随机)", value=-1, interactive=True)
+                t2i_img_nums = gr.Number(label="生成数量", value=1, interactive=True)
+                with gr.Row():
+                    t2i_clear_btn = gr.Button("清除文本")
+                    t2i_gene_btn = gr.Button("生成", variant="primary")
             # t2i_img = gr.Image(interactive=False)
             t2i_gallery = gr.Gallery(
                 label="Generated image", show_label=False, elem_id="gallery"
-                ).style(columns=[2], rows=[2], object_fit="contain", height="auto")
-    with gr.Tab("Image to Image"):
-        pass
+                ).style(columns=[4], rows=[2], object_fit="contain", height="auto")
+            
+    with gr.Tab("图像生成图像"):
+        with gr.Row():
+            with gr.Column():
+                i2i_style = gr.Radio(choices=["传统中式", "新中式", "日式侘寂风", "北欧清新风", "现代极简风"], label="装修风格")
+                i2i_img = gr.Image(label="原始图像")
+                i2i_prompt = gr.Textbox(label="正向提示词", lines=3, interactive=True)
+                i2i_nprompt = gr.Textbox(label="反向提示词", lines=3, interactive=True)
+                i2i_seed = gr.Number(label="随机种子(-1表示随机)", value=-1, interactive=True)
+                i2i_img_nums = gr.Number(label="生成数量", value=1, interactive=True)
+                with gr.Row():
+                    i2i_clear_btn = gr.Button("清除")
+                    i2i_gene_btn = gr.Button("生成", variant="primary")
+            # t2i_img = gr.Image(interactive=False)
+            i2i_gallery = gr.Gallery(
+                label="Generated image", show_label=False, elem_id="gallery"
+                ).style(columns=[4], rows=[2], object_fit="contain", height="auto")
 
+    with gr.Tab("超分辨率"):
+        with gr.Row():
+            with gr.Column():
+                reso_input_img = gr.Image(label="原始图像")
+                reso_ratio = gr.Radio(choices=[2, 4], label="放大比例", value=2)
+                with gr.Row():
+                    reso_clear_btn = gr.Button("清除")
+                    reso_gene_btn = gr.Button("生成", variant="primary")
+            reso_gene_img = gr.Image(label="超分辨率图像", interactive=False)
+        
 
     # table 1
     input_img.change(set_image, inputs=[input_img, state_points, state_labels, state_masks],
                      outputs=[state_points, state_labels, state_masks])
     input_img.select(gene_seg, inputs=[input_img, label_type, state_points, state_labels],
                      outputs=[seg_img, state_points, state_labels, state_masks]).success(gene_mask, inputs=[state_masks], outputs=[mask_img]).success(gene_expand, inputs=[mask_img], outputs=[expand_img])
-    clear_btn1.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
-    sd_removed_btn.click(gene_sd_removed, inputs=[input_img, expand_img], outputs=[sd_removed_img])
+    sd_clear_btn.click(lambda: "", None, [sd_inpaint_text])
+    # clear_btn1.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
+    sd_inpaint_btn.click(gene_sd_inpaint, inputs=[sd_inpaint_text, input_img, expand_img], outputs=[sd_inpaint_img])
     lama_removed_btn.click(gene_lama_removed, inputs=[input_img, expand_img], outputs=[lama_removed_img])
     
     # table 2
-    clear_btn2.click(lambda: [None] * 2, None, [t2i_prompt, t2i_nprompt])
-    t2i_gene_btn.click(text2img, inputs=[t2i_prompt, t2i_nprompt, t2i_width, t2i_height, t2i_seed, t2i_img_nums], 
+    t2i_clear_btn.click(lambda: [None] * 2, None, [t2i_prompt, t2i_nprompt])
+    t2i_gene_btn.click(text2img, inputs=[t2i_style, t2i_prompt, t2i_nprompt, t2i_width, t2i_height, t2i_seed, t2i_img_nums], 
                        outputs=[t2i_gallery])
+    # table 3
+    i2i_clear_btn.click(lambda: [None] * 3, None, [i2i_img, i2i_prompt, i2i_nprompt])
+    i2i_gene_btn.click(img2img, inputs=[i2i_style, i2i_img, i2i_prompt, i2i_nprompt, i2i_seed, i2i_img_nums], 
+                       outputs=[i2i_gallery])
 
-
+    # table 4
+    reso_clear_btn.click(lambda: [None] * 2, None, [reso_input_img, reso_gene_img])
+    reso_gene_btn.click(real_esrgan_app, inputs=[reso_input_img, reso_ratio], outputs=[reso_gene_img])
 
 if __name__ == "__main__":
     demo.queue().launch(server_name="127.0.0.1", server_port=8080)
-
-
