@@ -18,7 +18,7 @@ Label = List[int]
 app = FastAPI()
 
 
-# uvicorn all_api:app --reload --port 6006
+# uvicorn api:app --reload --port 6006
 @app.get("/")
 def welcome():
     return "Welcome!"

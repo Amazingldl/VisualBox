@@ -1,86 +1,25 @@
-import time
-
 import gradio as gr
-import numpy as np
 import torch
-import matplotlib.pyplot as plt
-import cv2
-from PIL import Image
+import numpy as np
 from segment_anything import sam_model_registry, SamPredictor
-from diffusers import StableDiffusionInpaintPipeline, UniPCMultistepScheduler
-from LAMA import inpaint_img_with_lama
+from util import *
+
 
 sam_checkpoint = "./model/SAM/sam_vit_h_4b8939.pth"
 model_type = "vit_h"
 
-device = "cuda"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
 sam.to(device=device)
 
 predictor = SamPredictor(sam)
 
-
-def show_mask(mask, ax, random_color=False):
-    if random_color:
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-    else:
-        color = np.array([30 / 255, 144 / 255, 255 / 255, 0.6])
-    h, w = mask.shape[-2:]
-    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-    ax.imshow(mask_image)
-
-
-def show_points(coords, labels, ax, marker_size=375):
-    pos_points = coords[labels == 1]
-    neg_points = coords[labels == 0]
-    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white',
-               linewidth=1.25)
-    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white',
-               linewidth=1.25)
-
-
-def show_box(box, ax):
-    x0, y0 = box[0], box[1]
-    w, h = box[2] - box[0], box[3] - box[1]
-    ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0, 0, 0, 0), lw=2))
-
-
-def plt_seg(img, mask, input_point=None, input_label=None, box=None):
-    dpi = plt.rcParams['figure.dpi']
-    height, width = img.shape[:2]
-    plt.figure(figsize=(width / dpi / 0.77, height / dpi / 0.77))
-    # plt.figure(figsize=(10, 10))
-    plt.imshow(img)
-    show_mask(mask, plt.gca())
-    if input_point is not None:
-        show_points(input_point, input_label, plt.gca())
-    if box is not None:
-        show_box(box, plt.gca())
-    plt.axis('off')
-    plt.savefig("temp.png", bbox_inches="tight", pad_inches=0)
-    img = cv2.imread("temp.png")
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return img
-
-
-def mask2image(masks):
-    for mask in masks:
-        h, w = mask.shape[0], mask.shape[1]
-        mask_img = Image.new('L', (w, h), 0)  # 灰度图，所有mask图像都是单通道的灰度图
-        for i in range(h):
-            for j in range(w):
-                if mask[i][j]:
-                    mask_img.putpixel((j, i), 255)
-                else:
-                    mask_img.putpixel((j, i), 0)
-        return mask_img
-
-
 def set_image(img, points, labels, masks):  # 只有加载和卸载图片时会调用
     if img is not None:
+
         predictor.set_image(img)
-        print("set")
+        # print("set")
     else:
         points = []
         labels = []
@@ -103,86 +42,113 @@ def gene_seg(img, label_type, points, labels, evt: gr.SelectData):
     return seg_img, points, labels, masks
 
 
-def gene_mask(masks):
-    return masks[0].astype(np.uint8) * 255
 
-
-def gene_expand(mask_img):
-    mask = mask_img.astype(np.uint8)
-    dilate_factor = 20
-    dilate_mask = cv2.dilate(
-        mask,
-        np.ones((dilate_factor, dilate_factor), np.uint8),
-        iterations=1
-    )
-    return dilate_mask
-
-
-def gene_sd_removed(image, mask_image):
-    prompt = "background"
-    pipe = StableDiffusionInpaintPipeline.from_pretrained(
-        "./model/SD/stable-diffusion-inpainting",
-        # "./model/HF/stable-diffusion-2-inpainting",
-        torch_dtype=torch.float16,
-    )
-    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-    pipe.enable_xformers_memory_efficient_attention()
-    pipe.to("cuda")
-
-    h, w = image.shape[:2]  # image.shape = (H, W, 3)   mode=RGB
-    image = Image.fromarray(image).resize((512, 512))
-    mask_image = Image.fromarray(mask_image).resize((512, 512))
-
-    removed_img = pipe(
-        prompt,
-        image=image,
-        mask_image=mask_image,
-        guidance_scale=7.5,
-    ).images[0]
-    return removed_img.resize((w, h))
-
-
-def gene_lama_removed(image, mask_image):
-    img_inpainted = inpaint_img_with_lama(image, mask_image, "./LAMA/lama/configs/prediction/default.yaml", "./model/big-lama")
-    return img_inpainted
-
-
-
-with gr.Blocks(theme='Ajaxon6255/Emerald_Isle', title="Visual Box") as demo:
+with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
     state_points = gr.State([])
     state_labels = gr.State([])
     state_masks = gr.State([])
     gr.Markdown(""
                 "## Visual Box"
                 "")
-    with gr.Row():
-        label_type = gr.Radio(label="label type", choices=["1", "0"], value="1")
-    with gr.Row():
-        input_img = gr.Image(label="input image", type="numpy")
-        seg_img = gr.Image(label="seg image", interactive=False)
-    with gr.Row():
-        mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy")
-        expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False)
-    with gr.Row():
-        sd_removed_img = gr.Image(label="sd removed image", interactive=False)
-        lama_removed_img = gr.Image(label="lama removed image", interactive=False)
-    with gr.Row():
-        clear_btn = gr.Button("Clear all")
-        mask_btn = gr.Button("Generate mask image")
-        expand_btn = gr.Button("Expand mask")
-        sd_removed_btn = gr.Button("Generate sd removed image", variant="primary")
-        lama_removed_btn = gr.Button("Generate lama removed image", variant="primary")
 
+    with gr.Tab("分割 & 编辑 & 移除"):
+        with gr.Row():
+            label_type = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
+        gr.Markdown("分割")
+        with gr.Row():
+            input_img = gr.Image(label="原始图像", type="numpy")
+            seg_img = gr.Image(label="分割图像", interactive=False)
+        mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
+        expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False, visible=False)
+        gr.Markdown("编辑")
+        with gr.Row():
+            with gr.Column():
+                sd_inpaint_text = gr.Textbox(label="提示词", lines=3, interactive=True)
+                with gr.Row():
+                    sd_clear_btn = gr.Button("清除文本")
+                    sd_inpaint_btn = gr.Button("通过SD模型生成图像", variant="primary")
+            with gr.Column():
+                sd_inpaint_img = gr.Image(label="SD生成图像", interactive=False)
+        gr.Markdown("移除")
+        with gr.Row():
+            with gr.Column():
+                lama_removed_btn = gr.Button("通过lama模型移除对象", variant="primary")
+            lama_removed_img = gr.Image(label="lama生成图像", interactive=False)
+        # with gr.Row():
+        #     clear_btn1 = gr.Button("清除所有图像")
+            # mask_btn = gr.Button("Generate mask image")
+            # expand_btn = gr.Button("Expand mask")
+            # sd_removed_btn = gr.Button("通过SD模型生成图像", variant="primary")
+            # lama_removed_btn = gr.Button("通过lama模型移除对象", variant="primary")
+
+    with gr.Tab("文本生成图像"):
+        with gr.Row():
+            with gr.Column():
+                t2i_style = gr.Radio(choices=["传统中式", "新中式", "日式侘寂风", "北欧清新风", "现代极简风"], label="装修风格")
+                t2i_prompt = gr.Textbox(label="正向提示词", lines=3, interactive=True)
+                t2i_nprompt = gr.Textbox(label="反向提示词", lines=3, interactive=True)
+                t2i_width = gr.Slider(label="图像宽度", minimum=512, maximum=1536, value=1024, step=4, interactive=True)
+                t2i_height = gr.Slider(label="图像高度", minimum=512, maximum=1536, value=576, step=4, interactive=True)
+                t2i_seed = gr.Number(label="随机种子(-1表示随机)", value=-1, interactive=True)
+                t2i_img_nums = gr.Number(label="生成数量", value=1, interactive=True)
+                with gr.Row():
+                    t2i_clear_btn = gr.Button("清除文本")
+                    t2i_gene_btn = gr.Button("生成", variant="primary")
+            # t2i_img = gr.Image(interactive=False)
+            t2i_gallery = gr.Gallery(
+                label="Generated image", show_label=False, elem_id="gallery"
+                ).style(columns=[4], rows=[2], object_fit="contain", height="auto")
+            
+    with gr.Tab("图像生成图像"):
+        with gr.Row():
+            with gr.Column():
+                i2i_style = gr.Radio(choices=["传统中式", "新中式", "日式侘寂风", "北欧清新风", "现代极简风"], label="装修风格")
+                i2i_img = gr.Image(label="原始图像")
+                i2i_prompt = gr.Textbox(label="正向提示词", lines=3, interactive=True)
+                i2i_nprompt = gr.Textbox(label="反向提示词", lines=3, interactive=True)
+                i2i_seed = gr.Number(label="随机种子(-1表示随机)", value=-1, interactive=True)
+                i2i_img_nums = gr.Number(label="生成数量", value=1, interactive=True)
+                with gr.Row():
+                    i2i_clear_btn = gr.Button("清除")
+                    i2i_gene_btn = gr.Button("生成", variant="primary")
+            # t2i_img = gr.Image(interactive=False)
+            i2i_gallery = gr.Gallery(
+                label="Generated image", show_label=False, elem_id="gallery"
+                ).style(columns=[4], rows=[2], object_fit="contain", height="auto")
+
+    with gr.Tab("超分辨率"):
+        with gr.Row():
+            with gr.Column():
+                reso_input_img = gr.Image(label="原始图像")
+                reso_ratio = gr.Radio(choices=[2, 4], label="放大比例", value=2)
+                with gr.Row():
+                    reso_clear_btn = gr.Button("清除")
+                    reso_gene_btn = gr.Button("生成", variant="primary")
+            reso_gene_img = gr.Image(label="超分辨率图像", interactive=False)
+        
+
+    # table 1
     input_img.change(set_image, inputs=[input_img, state_points, state_labels, state_masks],
                      outputs=[state_points, state_labels, state_masks])
     input_img.select(gene_seg, inputs=[input_img, label_type, state_points, state_labels],
-                     outputs=[seg_img, state_points, state_labels, state_masks])
-    clear_btn.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
-
-    mask_btn.click(gene_mask, inputs=[state_masks], outputs=[mask_img])
-    expand_btn.click(gene_expand, inputs=[mask_img], outputs=[expand_img])
-    sd_removed_btn.click(gene_sd_removed, inputs=[input_img, expand_img], outputs=[sd_removed_img])
+                     outputs=[seg_img, state_points, state_labels, state_masks]).success(gene_mask, inputs=[state_masks], outputs=[mask_img]).success(gene_expand, inputs=[mask_img], outputs=[expand_img])
+    sd_clear_btn.click(lambda: "", None, [sd_inpaint_text])
+    # clear_btn1.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
+    sd_inpaint_btn.click(gene_sd_inpaint, inputs=[sd_inpaint_text, input_img, expand_img], outputs=[sd_inpaint_img])
     lama_removed_btn.click(gene_lama_removed, inputs=[input_img, expand_img], outputs=[lama_removed_img])
+    
+    # table 2
+    t2i_clear_btn.click(lambda: [None] * 2, None, [t2i_prompt, t2i_nprompt])
+    t2i_gene_btn.click(text2img, inputs=[t2i_style, t2i_prompt, t2i_nprompt, t2i_width, t2i_height, t2i_seed, t2i_img_nums], 
+                       outputs=[t2i_gallery])
+    # table 3
+    i2i_clear_btn.click(lambda: [None] * 3, None, [i2i_img, i2i_prompt, i2i_nprompt])
+    i2i_gene_btn.click(img2img, inputs=[i2i_style, i2i_img, i2i_prompt, i2i_nprompt, i2i_seed, i2i_img_nums], 
+                       outputs=[i2i_gallery])
+
+    # table 4
+    reso_clear_btn.click(lambda: [None] * 2, None, [reso_input_img, reso_gene_img])
+    reso_gene_btn.click(real_esrgan_app, inputs=[reso_input_img, reso_ratio], outputs=[reso_gene_img])
 
 if __name__ == "__main__":
     demo.queue().launch(server_name="127.0.0.1", server_port=8080)
