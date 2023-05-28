@@ -11,6 +11,7 @@ from LAMA import inpaint_img_with_lama
 from typing import List, Dict, Optional, Literal
 from SD import StableDiffusionModel
 from SD import StableDiffusionControlNetModel
+from DIS import dis_inference
 
 
 
@@ -206,4 +207,14 @@ def img2img(style, img, prompt, n_prompt, seed, img_nums):
     sd = StableDiffusionModel()
     print(prompt, n_prompt, seed, img_nums)
     img = sd.img2img(img, None, prompt, n_prompt, seed, int(img_nums))
+    return img
+
+def dis_background_remove(img_path):
+    rmbg_img =  dis_inference(img_path, None)
+    return rmbg_img
+
+def sam_background_remove(img, mask_img):
+    img = Image.fromarray(img)
+    mask_img = Image.fromarray(mask_img, mode="L")
+    img.putalpha(mask_img)
     return img

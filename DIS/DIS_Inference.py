@@ -138,7 +138,10 @@ def inference(in_path, out_path):
     im_rgb = Image.open(in_path).convert("RGB")
     im_rgba = im_rgb.copy()
     im_rgba.putalpha(pil_mask)
-    im_rgba.save(out_path)
+    if out_path is None:
+        return im_rgba
+    else:
+        im_rgba.save(out_path)
 
 
 def inference_dir(in_path, out_path):
