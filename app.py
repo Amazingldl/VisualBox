@@ -42,8 +42,9 @@ def gene_seg(img, label_type, points, labels, evt: gr.SelectData):
     return seg_img, points, labels, masks
 
 
-
-with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
+# freddyaboulton/dracula_revamped
+# bethecloud/storj_theme
+with gr.Blocks(title="Visual Box", theme="freddyaboulton/dracula_revamped") as demo:
     state_points = gr.State([])
     state_labels = gr.State([])
     state_masks = gr.State([])
@@ -125,6 +126,30 @@ with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
                     reso_clear_btn = gr.Button("清除")
                     reso_gene_btn = gr.Button("生成", variant="primary")
             reso_gene_img = gr.Image(label="超分辨率图像", interactive=False)
+    
+
+    with gr.Tab("移除背景"):
+        gr.Markdown("自动移除背景")
+        with gr.Row():
+            with gr.Column():
+                rmbg_dis_input_img = gr.Image(label="原始图像", type="filepath")
+                with gr.Row():
+                    rmbg_dis_clear_btn = gr.Button("清除")
+                    rmbg_dis_gene_btn = gr.Button("移除背景", variant="primary")
+            rmbg_dis_gene_img = gr.Image(label="移除背景图像", interactive=False)
+        gr.Markdown("手动移除背景")
+        with gr.Row():
+            with gr.Column():
+                label_type = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
+                input_img = gr.Image(label="原始图像", type="numpy")
+                with gr.Row():
+                    rmbg_sam_clear_btn = gr.Button("清除")
+                    rmbg_sam_gene_btn = gr.Button("移除背景", variant="primary")
+            with gr.Column():
+                seg_img = gr.Image(label="分割图像", interactive=False)
+                mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
+                rmbg_sam_gene_img = gr.Image(label="移除背景图像", interactive=False)
+
         
 
     # table 1
@@ -150,5 +175,12 @@ with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
     reso_clear_btn.click(lambda: [None] * 2, None, [reso_input_img, reso_gene_img])
     reso_gene_btn.click(real_esrgan_app, inputs=[reso_input_img, reso_ratio], outputs=[reso_gene_img])
 
+    # table 5
+    rmbg_dis_clear_btn.click(lambda: [None] * 2, None, [rmbg_dis_input_img, rmbg_dis_gene_img])
+    rmbg_dis_gene_btn.click(dis_background_remove, inputs=[rmbg_dis_input_img], outputs=[rmbg_dis_gene_img])
+    rmbg_sam_clear_btn.click(lambda: [None] * 3, None, [input_img, seg_img, rmbg_sam_gene_img])
+    rmbg_sam_gene_btn.click(sam_background_remove, inputs=[input_img, mask_img], outputs=[rmbg_sam_gene_img])
+
+
 if __name__ == "__main__":
-    demo.queue().launch(server_name="127.0.0.1", server_port=8080)
+    demo.queue().launch(server_name="127.0.0.1")
