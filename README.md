@@ -5,6 +5,13 @@ Download all models on huggingface:
 https://huggingface.co/Amazingldl/VisualBox
 
 Place the `model` folder in the root directory of this repo before runing.
+Like this:
+├── DIS
+├── LAMA
+├── model
+├── OF
+├── SAM
+├── SD
 
 ### Dependencies
 ```shell

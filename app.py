@@ -28,6 +28,7 @@ def set_image(img, points, labels, masks):  # 只有加载和卸载图片时会�
 
 
 def gene_seg(img, label_type, points, labels, evt: gr.SelectData):
+    predictor.set_image(img)
     points.append([evt.index[0], evt.index[1]])
     if label_type == "1":
         labels.append(1)
@@ -44,23 +45,26 @@ def gene_seg(img, label_type, points, labels, evt: gr.SelectData):
 
 # freddyaboulton/dracula_revamped
 # bethecloud/storj_theme
-with gr.Blocks(title="Visual Box", theme="freddyaboulton/dracula_revamped") as demo:
-    state_points = gr.State([])
-    state_labels = gr.State([])
-    state_masks = gr.State([])
+with gr.Blocks(title="Visual Box", theme="bethecloud/storj_theme") as demo:
+    state_points1 = gr.State([])
+    state_labels1 = gr.State([])
+    state_masks1 = gr.State([])
+    state_points2 = gr.State([])
+    state_labels2 = gr.State([])
+    state_masks2 = gr.State([])
     gr.Markdown(""
                 "## Visual Box"
                 "")
 
     with gr.Tab("分割 & 编辑 & 移除"):
         with gr.Row():
-            label_type = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
+            label_type1 = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
         gr.Markdown("分割")
         with gr.Row():
-            input_img = gr.Image(label="原始图像", type="numpy")
-            seg_img = gr.Image(label="分割图像", interactive=False)
-        mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
-        expand_img = gr.Image(label="expand mask", image_mode="L", interactive=False, visible=False)
+            input_img1 = gr.Image(label="原始图像", type="numpy")
+            seg_img1 = gr.Image(label="分割图像", interactive=False)
+        mask_img1 = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
+        expand_img1 = gr.Image(label="expand mask", image_mode="L", interactive=False, visible=False)
         gr.Markdown("编辑")
         with gr.Row():
             with gr.Column():
@@ -140,27 +144,27 @@ with gr.Blocks(title="Visual Box", theme="freddyaboulton/dracula_revamped") as d
         gr.Markdown("手动移除背景")
         with gr.Row():
             with gr.Column():
-                label_type = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
-                input_img = gr.Image(label="原始图像", type="numpy")
+                label_type2 = gr.Radio(label="鼠标选择类型", choices=["1", "0"], value="1", interactive=True)
+                input_img2 = gr.Image(label="原始图像", type="numpy")
                 with gr.Row():
                     rmbg_sam_clear_btn = gr.Button("清除")
                     rmbg_sam_gene_btn = gr.Button("移除背景", variant="primary")
             with gr.Column():
-                seg_img = gr.Image(label="分割图像", interactive=False)
-                mask_img = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
+                seg_img2 = gr.Image(label="分割图像", interactive=False)
+                mask_img2 = gr.Image(label="mask image", image_mode="L", interactive=False, type="numpy", visible=False)
                 rmbg_sam_gene_img = gr.Image(label="移除背景图像", interactive=False)
 
         
 
     # table 1
-    input_img.change(set_image, inputs=[input_img, state_points, state_labels, state_masks],
-                     outputs=[state_points, state_labels, state_masks])
-    input_img.select(gene_seg, inputs=[input_img, label_type, state_points, state_labels],
-                     outputs=[seg_img, state_points, state_labels, state_masks]).success(gene_mask, inputs=[state_masks], outputs=[mask_img]).success(gene_expand, inputs=[mask_img], outputs=[expand_img])
+    input_img1.change(set_image, inputs=[input_img1, state_points1, state_labels1, state_masks1],
+                     outputs=[state_points1, state_labels1, state_masks1])
+    input_img1.select(gene_seg, inputs=[input_img1, label_type1, state_points1, state_labels1],
+                     outputs=[seg_img1, state_points1, state_labels1, state_masks1]).success(gene_mask, inputs=[state_masks1], outputs=[mask_img1]).success(gene_expand, inputs=[mask_img1], outputs=[expand_img1])
     sd_clear_btn.click(lambda: "", None, [sd_inpaint_text])
     # clear_btn1.click(lambda: [None] * 6, None, [input_img, seg_img, mask_img, expand_img, sd_removed_img, lama_removed_img])
-    sd_inpaint_btn.click(gene_sd_inpaint, inputs=[sd_inpaint_text, input_img, expand_img], outputs=[sd_inpaint_img])
-    lama_removed_btn.click(gene_lama_removed, inputs=[input_img, expand_img], outputs=[lama_removed_img])
+    sd_inpaint_btn.click(gene_sd_inpaint, inputs=[sd_inpaint_text, input_img1, expand_img1], outputs=[sd_inpaint_img])
+    lama_removed_btn.click(gene_lama_removed, inputs=[input_img1, expand_img1], outputs=[lama_removed_img])
     
     # table 2
     t2i_clear_btn.click(lambda: [None] * 2, None, [t2i_prompt, t2i_nprompt])
@@ -178,8 +182,13 @@ with gr.Blocks(title="Visual Box", theme="freddyaboulton/dracula_revamped") as d
     # table 5
     rmbg_dis_clear_btn.click(lambda: [None] * 2, None, [rmbg_dis_input_img, rmbg_dis_gene_img])
     rmbg_dis_gene_btn.click(dis_background_remove, inputs=[rmbg_dis_input_img], outputs=[rmbg_dis_gene_img])
-    rmbg_sam_clear_btn.click(lambda: [None] * 3, None, [input_img, seg_img, rmbg_sam_gene_img])
-    rmbg_sam_gene_btn.click(sam_background_remove, inputs=[input_img, mask_img], outputs=[rmbg_sam_gene_img])
+    rmbg_sam_clear_btn.click(lambda: [None] * 3, None, [input_img2, seg_img2, rmbg_sam_gene_img])
+    rmbg_sam_gene_btn.click(sam_background_remove, inputs=[input_img2, mask_img2], outputs=[rmbg_sam_gene_img])
+    input_img2.change(set_image, inputs=[input_img2, state_points2, state_labels2, state_masks2],
+                     outputs=[state_points2, state_labels2, state_masks2])
+    input_img2.select(gene_seg, inputs=[input_img2, label_type2, state_points2, state_labels2],
+                     outputs=[seg_img2, state_points2, state_labels2, state_masks2]).success(gene_mask, inputs=[state_masks2], outputs=[mask_img2])
+
 
 
 if __name__ == "__main__":
